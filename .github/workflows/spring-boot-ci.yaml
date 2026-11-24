@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Greeting message"
-        run: echo "Hi"
+        run: echo "Hi ,again"
       - name: "Branch name"
         run: echo "Im from branch ${{github.ref_name}}"
       - name: "Finishing message"
