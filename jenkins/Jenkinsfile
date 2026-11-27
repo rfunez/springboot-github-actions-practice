@@ -1,0 +1,83 @@
+pipeline{
+    agent {
+        label 'agent1 || agent2'
+    }
+    environment {
+        URL_REPO = 'git@github.com:rfunez/springboot-github-actions-practice.git'
+        BRANCH = 'jenkins'
+        ARTIFACTORY = 'http://nexus:8081/repository/maven-releases'
+    }
+    tools {
+        jdk 'java8'
+        maven 'maven'
+    }
+    options {
+        timeout(time:15,unit:'MINUTES')
+        disableConcurrentBuilds()
+        timestamps()
+        parallelsAlwaysFailFast()
+        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: ''
+                                  , daysToKeepStr: '5', numToKeepStr: '3')
+    }
+    stages {
+        stage ('Checkout') {
+            steps {
+                echo 'Checkout repository'
+                sh 'git clone -b $BRANCH $URL_REPO'
+            }
+        }
+        
+        stage ('Compile & Test') {
+            steps {
+               echo "Compiling"
+               sh 'mvn clean compile'
+            }
+        }
+
+        stage ('Test') {
+            failFast true
+            parallel {
+                stage ('Unit test') {
+                  steps {
+                    echo "Running unitary test"
+                    sh 'mvn test:test'
+                  }  
+                }
+                stage ('Integration test') {
+                    steps {
+                        echo 'Running integration test'
+                        sh 'mvn test:test -DskipUnitTest'
+                    }
+                }
+            }
+        }
+
+        stage ('Deploy') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'jenkins_nexus'
+                                 , passwordVariable: 'NEXUS_PASSWORD'
+                                 , usernameVariable: 'NEXUS_USER')]) {
+
+                    sh '''
+                       echo 'Deploying to artifact'
+                       JAR_FILE=$(find target -maxdepth 1 -name "*-${BUILD_NUMBER}.jar" -print -quit)
+                       mvn deploy:deploy-file \
+                           -Durl=$ARTIFACTORY \
+                           -Dfile="$JAR_FILE" \
+                           -DpomFile=pom.xml \
+                           -DrepositoryId=nexus
+                    '''
+     
+                }
+            }
+        }
+    }  
+    post {
+      always {
+        echo 'Build completed'
+      }
+      cleanup {
+        cleanWs()
+      }
+    } 
+}
