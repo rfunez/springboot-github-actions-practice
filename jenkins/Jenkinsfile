@@ -26,7 +26,7 @@ pipeline{
                     sh '''
                        URL_REPO='https://${GithubCred}@github.com/rfunez/springboot-github-actions-practice.git'
                        echo 'Checkout repository'
-                       sh 'git clone -b $BRANCH $URL_REPO'
+                       git clone -b $BRANCH $URL_REPO
                     '''
                 
                 }
