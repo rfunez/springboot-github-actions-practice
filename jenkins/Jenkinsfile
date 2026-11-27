@@ -3,7 +3,6 @@ pipeline{
         label 'agent1 || agent2'
     }
     environment {
-        URL_REPO = 'git@github.com:rfunez/springboot-github-actions-practice.git'
         BRANCH = 'jenkins'
         ARTIFACTORY = 'http://nexus:8081/repository/maven-releases'
     }
@@ -22,8 +21,15 @@ pipeline{
     stages {
         stage ('Checkout') {
             steps {
-                echo 'Checkout repository'
-                sh 'git clone -b $BRANCH $URL_REPO'
+                withCredentials([usernameColonPassword(credentialsId: 'ReposGithubPAT'
+                                 , variable: 'GithubCred')]) {
+                    sh '''
+                       URL_REPO='https://${GithubCred}@github.com/rfunez/springboot-github-actions-practice.git'
+                       echo 'Checkout repository'
+                       sh 'git clone -b $BRANCH $URL_REPO'
+                    '''
+                
+                }
             }
         }
         
